@@ -48,7 +48,6 @@ class Yii1 {
 	 * @param array $storage 
 	 */
 	public function afterConfigMerge($context, &$storage) {
-		print_r($context);
 		$storage['YiiConfig'][] = array('Name' => 'Application Name', 'Value' => $context['functionArgs'][0]);
 	}
 	
@@ -58,6 +57,38 @@ class Yii1 {
 	 */
 	public function afterSetPathOfAlias($context, &$storage) {
 		$storage['YiiAlias'][] = array('Name' => $context['functionArgs'][0], 'Value' => $context['functionArgs'][1]);
+	}
+	
+	public function afterRenderPartial($context, &$storage){
+		$storage['YiiRender'][] = array('Script' => $context['functionArgs'][0], 'Type' => 'partial');
+	}
+	
+	public function afterRenderFile($context, &$storage){
+		$storage['YiiRender'][] = array('Script' => $context['functionArgs'][0], 'Render' => 'file');
+	}
+	
+	public function harvestApplication($context, &$storage) {
+		foreach (YiiBase::app()->getModules() as $module => $properties) {
+			$storage['YiiModules'][] = array('module' => $module, 'class' => $properties['class']);
+		}
+		
+		$components = YiiBase::app()->getComponents(false);
+		$usedComponents = array_keys(YiiBase::app()->getComponents(true));
+		
+		foreach ($components as $name => $component) {
+			$class = 'unclear';
+			if (is_object($component)) {
+				$class = get_class($component);
+			} elseif (is_array($component) && isset($component['class'])) {
+				$class = $component['class'];
+			}
+			$storage['YiiComponents'][] = array('component' => $name, 'class' => $class, 'used' => in_array($name, $usedComponents) ? 'Loaded' : 'Nope');
+		}
+		
+	}
+	
+	public function logEntries($context, &$storage) {
+		$storage['YiiLog'][] = array('entry' => $context['functionArgs'][0]);
 	}
 }
 
@@ -70,12 +101,8 @@ $zre->setEnabled('Yii*::setPathOfAlias');
 
 $zre->traceFunction('Yii*::setPathOfAlias', function(){}, array($zrayYii1, 'afterSetPathOfAlias'));
 $zre->traceFunction('Yii*::createApplication', array($zrayYii1, 'beforeCreateApplication'), array($zrayYii1, 'afterCreateApplication'));
-$zre->traceFunction('CController::renderPartial', function($context, &$storage){
-	$storage['YiiRender'][] = array('Script' => $context['functionArgs'][0]);
-}, function(){});
+$zre->traceFunction('CController::renderPartial', function(){}, array($zrayYii1, 'afterRenderPartial'));
+$zre->traceFunction('CController::renderFile', function(){}, array($zrayYii1, 'afterRenderFile'));
 	
-$zre->traceFunction('CController::renderFile', function($context, &$storage){
-	print_r($context);
-	//$storage['YiiRender'][] = array('Name' => $context['functionArgs'][0], 'Value' => $context['functionArgs'][1]);
-}, function(){});
-	
+$zre->traceFunction('Yii*::createApplication', function(){}, array($zrayYii1, 'harvestApplication'));
+$zre->traceFunction('YiiBase::log', function(){}, array($zrayYii1, 'logEntries'));
