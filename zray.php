@@ -96,7 +96,7 @@ $zrayYii1 = new Yii1();
 
 $zre = new ZRayExtension('Yii1');
 $zrayYii1->setZray($zre);
-//$zre->setMetadata(array('logo' => __DIR__ . DIRECTORY_SEPARATOR . 'logo.png',));
+$zre->setMetadata(array('logo' => __DIR__ . DIRECTORY_SEPARATOR . 'Yiilogo.png',));
 $zre->setEnabled('Yii*::setPathOfAlias');
 
 $zre->traceFunction('Yii*::setPathOfAlias', function(){}, array($zrayYii1, 'afterSetPathOfAlias'));
